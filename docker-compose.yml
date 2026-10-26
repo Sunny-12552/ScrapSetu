@@ -1,0 +1,71 @@
+# Local Docker demo for ScrapSetu: PostgreSQL 16 + API + pre-built web app.
+#
+#   docker compose up --build
+#   open http://localhost:8000
+#
+# This compose file defaults to development mode so demo OTPs are usable
+# without an SMS provider. For production, set ENVIRONMENT=production,
+# OTP_DEV_MODE=false, a strong SECRET_KEY, real SMS credentials and
+# ALLOW_DEMO_SEED=false. See docs/deployment.md.
+
+name: scrapsetu
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-scrapsetu}
+      POSTGRES_USER: ${POSTGRES_USER:-scrapsetu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scrapsetu-dev-password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-scrapsetu} -d ${POSTGRES_DB:-scrapsetu}
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-insecure-secret-change-me-0123456789abcdef}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-scrapsetu}:${POSTGRES_PASSWORD:-scrapsetu-dev-password}@db:5432/${POSTGRES_DB:-scrapsetu}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:8000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000,http://localhost:5173}
+      OTP_DEV_MODE: ${OTP_DEV_MODE:-true}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+      STORAGE_BACKEND: local
+      STORAGE_DIR: /app/backend/var/uploads
+      SMS_PROVIDER: ${SMS_PROVIDER:-console}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      MAPS_PROVIDER: ${MAPS_PROVIDER:-none}
+      PAYMENT_GATEWAY: manual
+      ENABLE_SCHEDULER: "true"
+      RATE_LIMIT_ENABLED: "true"
+      ALLOW_DEMO_SEED: ${ALLOW_DEMO_SEED:-true}
+      SEED_DEMO: ${SEED_DEMO:-1}
+    command:
+      - sh
+      - -c
+      - |
+        alembic upgrade head &&
+        if [ "$$SEED_DEMO" = "1" ]; then python -m app.cli seed-demo; fi &&
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - uploads:/app/backend/var/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:

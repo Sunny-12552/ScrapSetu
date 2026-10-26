@@ -1,0 +1,51 @@
+# --- secrets / local config -------------------------------------------------
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# --- Python -----------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- databases / runtime ----------------------------------------------------
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
+backend/scrapsetu.db*
+backend/test_scrapsetu.db*
+backend/var/
+var/
+logs/
+*.log
+
+# --- Node / frontend --------------------------------------------------------
+node_modules/
+frontend/dist/
+dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- editors / OS -----------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- local QA artifacts -----------------------------------------------------
+backend/schemas_dump.txt
+backend/openapi.json
